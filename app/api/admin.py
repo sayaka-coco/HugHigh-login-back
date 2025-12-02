@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 from app.core.database import get_db
 from app.api.deps import get_current_admin
 from app.repositories.user_repository import UserRepository
+from app.repositories.auth_log_repository import AuthLogRepository
 from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from app.schemas.auth import AuthLogResponse, AuthLogListResponse
 from app.models.user import User
 
 router = APIRouter(prefix="/admin", tags=["管理者機能"])
@@ -163,3 +166,29 @@ async def delete_user(
 
     await user_repo.delete(user)
     return None
+
+
+@router.get("/auth-logs", response_model=AuthLogListResponse)
+async def get_auth_logs(
+    skip: int = 0,
+    limit: int = 100,
+    event_type: Optional[str] = None,
+    current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    認証ログ一覧を取得（管理者のみ）
+
+    Parameters:
+    - skip: スキップする件数（ページネーション用）
+    - limit: 取得する件数（最大100件）
+    - event_type: イベントタイプでフィルタ（オプション）
+    """
+    auth_log_repo = AuthLogRepository(db)
+    logs = await auth_log_repo.get_all(skip=skip, limit=limit, event_type=event_type)
+    total = await auth_log_repo.count(event_type=event_type)
+
+    return AuthLogListResponse(
+        logs=[AuthLogResponse.model_validate(log) for log in logs],
+        total=total,
+    )

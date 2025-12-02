@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import create_google_oauth_client, verify_google_id_token, create_access_token
+from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.repositories.auth_log_repository import AuthLogRepository
 from app.models.user import User
@@ -77,15 +78,34 @@ class AuthService:
             # 4. DBでユーザー照合
             user = await self.user_repo.get_by_email(email)
             if not user:
-                # 未登録ユーザー
-                await self.auth_log_repo.create(
-                    user_id=None,
-                    event_type="LOGIN_FAIL_NOT_REGISTERED",
-                    ip_address=ip_address,
-                    user_agent=user_agent,
-                    error_code="USER_NOT_REGISTERED",
-                )
-                return None, None, "USER_NOT_REGISTERED"
+                # 初期管理者リストをチェック
+                if email in settings.initial_admin_emails_list:
+                    # 初期管理者として自動登録
+                    user = User(
+                        email=email,
+                        role=2,  # 管理者
+                        name=user_info.get("name"),
+                        google_sub=google_sub,
+                    )
+                    user = await self.user_repo.create(user)
+
+                    # 管理者登録ログ
+                    await self.auth_log_repo.create(
+                        user_id=user.id,
+                        event_type="INITIAL_ADMIN_REGISTERED",
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                    )
+                else:
+                    # 未登録ユーザー
+                    await self.auth_log_repo.create(
+                        user_id=None,
+                        event_type="LOGIN_FAIL_NOT_REGISTERED",
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                        error_code="USER_NOT_REGISTERED",
+                    )
+                    return None, None, "USER_NOT_REGISTERED"
 
             # 5. google_sub を保存（初回ログイン時）
             if not user.google_sub:

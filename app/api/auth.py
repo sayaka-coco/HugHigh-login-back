@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Response, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.config import settings
@@ -50,11 +51,10 @@ async def google_login(db: AsyncSession = Depends(get_db)):
     return GoogleAuthURLResponse(auth_url=auth_url)
 
 
-@router.get("/google/callback", response_model=LoginResponse)
+@router.get("/google/callback")
 async def google_callback(
     code: str,
     request: Request,
-    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -72,20 +72,9 @@ async def google_callback(
     )
 
     if error_code:
-        # エラーメッセージをシンプルに
-        error_messages = {
-            "USER_NOT_REGISTERED": "ログインに失敗しました。管理者にお問い合わせください。",
-            "EMAIL_NOT_VERIFIED": "ログインに失敗しました。メールアドレスが未確認です。",
-            "TOKEN_EXCHANGE_FAILED": "ログインに失敗しました。",
-            "UNKNOWN_ERROR": "ログインに失敗しました。",
-        }
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=error_messages.get(error_code, "ログインに失敗しました。"),
-        )
-
-    # Cookieにアクセストークンをセット
-    _set_access_token_cookie(response, access_token)
+        # エラーページにリダイレクト
+        error_url = f"{settings.cors_origins_list[0]}/login?error=auth_failed"
+        return RedirectResponse(url=error_url, status_code=status.HTTP_303_SEE_OTHER)
 
     # ロールに応じたリダイレクト先を決定
     redirect_map = {
@@ -95,10 +84,11 @@ async def google_callback(
     }
     redirect_url = redirect_map.get(user.role, settings.cors_origins_list[0])
 
-    return LoginResponse(
-        message="ログインに成功しました",
-        redirect_url=redirect_url,
-    )
+    # RedirectResponseを作成してCookieを設定
+    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
+    _set_access_token_cookie(response, access_token)
+
+    return response
 
 
 @router.post("/logout")

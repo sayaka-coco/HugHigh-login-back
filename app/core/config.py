@@ -62,5 +62,15 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: str = "lax"
     COOKIE_DOMAIN: str = "localhost"
 
+    # 初期管理者設定
+    INITIAL_ADMIN_EMAILS: str = ""
+
+    @property
+    def initial_admin_emails_list(self) -> List[str]:
+        """初期管理者メールアドレスのリスト"""
+        if not self.INITIAL_ADMIN_EMAILS:
+            return []
+        return [email.strip() for email in self.INITIAL_ADMIN_EMAILS.split(",")]
+
 
 settings = Settings()

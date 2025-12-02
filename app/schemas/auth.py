@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 
 
 class GoogleAuthURLResponse(BaseModel):
@@ -29,3 +30,25 @@ class LoginResponse(BaseModel):
 
     message: str
     redirect_url: str
+
+
+class AuthLogResponse(BaseModel):
+    """認証ログレスポンス"""
+
+    id: str
+    user_id: Optional[str]
+    timestamp: datetime
+    event_type: str
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    error_code: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class AuthLogListResponse(BaseModel):
+    """認証ログリストレスポンス"""
+
+    logs: List[AuthLogResponse]
+    total: int

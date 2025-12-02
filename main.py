@@ -5,8 +5,7 @@ from app.api import auth, admin, students, teachers
 
 # FastAPIアプリケーション作成
 app = FastAPI(
-    title="HugHigh Login API",
-    description="下妻第一高校 非認知能力可視化アプリ - ログイン機能",
+    title="Authentication API",
     version="1.0.0",
 )
 
@@ -30,7 +29,7 @@ app.include_router(teachers.router)
 async def root():
     """ルートエンドポイント"""
     return {
-        "message": "HugHigh Login API",
+        "message": "Authentication API",
         "version": "1.0.0",
         "docs": "/docs",
     }
