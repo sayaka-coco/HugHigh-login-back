@@ -89,11 +89,12 @@ uv run fastapi run main.py
 - `GET /admin/users/{user_id}` - ユーザー詳細
 - `PUT /admin/users/{user_id}` - ユーザー更新
 - `DELETE /admin/users/{user_id}` - ユーザー削除
+- `GET /admin/security-logs` - セキュリティログ一覧
 
 #### 生徒機能（role=0のみ）
 - `GET /students/dashboard` - 生徒用ダッシュボード
 
-#### 教員機能（role=1,2のみ）
+#### 教員機能（role=1のみ）
 - `GET /teachers/dashboard` - 教員用ダッシュボード
 
 ## データベーススキーマ
